@@ -8,7 +8,14 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 )
+
+type featureBatch struct {
+	Timestamp     int64
+	TotalMessages int
+	Features      []geojson.Feature
+}
 
 func main() {
 
@@ -25,24 +32,22 @@ func main() {
 		log.Fatal("Error while unmarshaling geojson: ", err)
 	}
 
-	// Send Features in batches.
-	var batch []geojson.Feature
 	batchSize := 5
 
-	// Include total number of countries so that Service C knows when done receiving.
-	header := new(geojson.Feature)
-	header.SetProperty("NUM_OF_COUNTRIES", len(fc.Features))
-	batch = append(batch, *header)
-
+	fb := featureBatch{
+		Timestamp:     time.Now().UnixNano(),
+		TotalMessages: len(fc.Features),
+		Features:      nil,
+	}
 	// Fill batches and send to Service B
 	for i, f := range fc.Features {
 
-		batch = append(batch, *f)
-		if len(batch) == batchSize || len(fc.Features) == i+1 {
+		fb.Features = append(fb.Features, *f)
+		if len(fb.Features) == batchSize || len(fc.Features) == i+1 {
 
-			fmt.Printf("Sending batch: %+v, number of elements: %+v\n", 1+(i/batchSize), len(batch))
-			sendToB(batch)
-			batch = nil
+			fmt.Printf("Sending batch: %+v, number of elements: %+v\n", 1+(i/batchSize), len(fb.Features))
+			sendToB(fb)
+			fb.Features = nil
 		}
 	}
 	fmt.Println("done")
@@ -76,7 +81,7 @@ func getGeoJSONFile(path string) ([]byte, error) {
 	return ioutil.ReadFile(path)
 }
 
-func sendToB(batch []geojson.Feature) {
+func sendToB(fb featureBatch) {
 	// Connect to Service B
 	conn, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
@@ -88,5 +93,9 @@ func sendToB(batch []geojson.Feature) {
 	encoder := gob.NewEncoder(conn)
 
 	// Send batch
-	encoder.Encode(batch)
+
+	if err = encoder.Encode(fb); err != nil {
+		fmt.Println("Something went wrong while sending batch: ", err)
+	}
+	//fmt.Println(fb)
 }

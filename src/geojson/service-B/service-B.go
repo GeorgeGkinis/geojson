@@ -8,6 +8,12 @@ import (
 	"net"
 )
 
+type featureBatch struct {
+	Timestamp     int64
+	TotalMessages int
+	Features      []geojson.Feature
+}
+
 func main() {
 	fmt.Println("Starting Service B")
 	ln, err := net.Listen("tcp", ":8080")
@@ -29,51 +35,44 @@ func handleConnection(conn net.Conn) {
 	// Create decoder listening on connection
 	dec := gob.NewDecoder(conn)
 
-	batch := &[]geojson.Feature{}
-	dec.Decode(batch)
+	fb := &featureBatch{}
+	dec.Decode(fb)
 	conn.Close()
 
-	fmt.Println("Received batch of length: ", len(*batch))
-	calculatePopulationDensity(*batch)
+	fmt.Println("Received batch of length: ", len(fb.Features))
+	calculatePopulationDensity(fb)
 
-	for _, f := range *batch {
-		n, _ := f.PropertyString("NAME")
-		fmt.Printf("Sent: %+v\n", n)
-	}
-	sendToC(*batch)
+	sendToC(fb)
 }
 
-func calculatePopulationDensity(f []geojson.Feature) {
+func calculatePopulationDensity(fb *featureBatch) {
 
-	for _, c := range f {
+	for _, f := range fb.Features {
 
-		// Do not process header feature.
-		if _, err := c.PropertyInt("NUM_OF_COUNTRIES"); err != nil {
+		// Get polulation
+		pop, err := f.PropertyInt("POP2005")
+		if err != nil {
+			log.Fatal(err)
+		}
 
-			// Get polulation
-			pop, err := c.PropertyInt("POP2005")
-			if err != nil {
-				log.Fatal(err)
-			}
+		// Get Area
+		area, err := f.PropertyInt("AREA")
+		if err != nil {
+			log.Fatal(err)
+		}
 
-			// Get Area
-			area, err := c.PropertyInt("AREA")
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			if area != 0 {
-				dens := float64(pop) / float64(area)
-				c.SetProperty("POPDENS", dens)
-			} else {
-				// TODO: If AREA == 0 then calculate from multipolygon
-				c.SetProperty("POPDENS", -1)
-			}
+		if area != 0 {
+			dens := float64(pop) / float64(area)
+			f.SetProperty("POPDENS", dens)
+		} else {
+			// TODO: If AREA == 0 then calculate from multipolygon
+			f.SetProperty("POPDENS", -1)
 		}
 	}
+
 }
 
-func sendToC(batch []geojson.Feature) {
+func sendToC(fb *featureBatch) {
 	// Connect to Service C
 	conn, err := net.Dial("tcp", "localhost:8090")
 	if err != nil {
@@ -85,5 +84,7 @@ func sendToC(batch []geojson.Feature) {
 	encoder := gob.NewEncoder(conn)
 
 	// Send batch
-	encoder.Encode(batch)
+	if err = encoder.Encode(fb); err != nil {
+		fmt.Println("Something went wrong while sending batch: ", err)
+	}
 }
