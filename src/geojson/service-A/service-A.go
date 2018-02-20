@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -16,11 +18,26 @@ func main() {
 	fmt.Println("Starting Service A.")
 
 	// Set batch size
-	batchSize := 5
+	batchSize, err := strconv.Atoi(os.Getenv("BATCH_SIZE"))
+	if err != nil {
+		//fmt.Println("BATCH_SIZE evnironment variable not set.\n Using default: 5")
+		batchSize = 5
+	}
+
+	r, err := strconv.Atoi(os.Getenv("RETRIES"))
+	if err != nil {
+		//fmt.Println("RETRIES evnironment variable not set.\n Using default: 5")
+		r = 5
+	}
+	url := os.Getenv("SERVICE_B_URL")
+	if url == "" {
+		//fmt.Println("SERVICE_B_URL evnironment variable not set.\n Using default: localhost:8080")
+		url = "0.0.0.0:8080"
+	}
 
 	// Get GeoJSON
-	//respBytes,err := getGeoJSON("https://ccdnn.locsensads.com/jobs/worldborders.geojson")
-	respBytes, err := getGeoJSONFile("countries.geojson")
+	respBytes, err := getGeoJSON("https://ccdnn.locsensads.com/jobs/worldborders.geojson")
+	//respBytes, err := getGeoJSONFile("countries.geojson")
 	if err != nil {
 		log.Fatal("Error reading geojson: ", err)
 	}
@@ -49,7 +66,8 @@ func main() {
 			batch.BatchNumber = 1 + (i / batchSize)
 
 			wg.Add(1)
-			go batch.Send("localhost:8080", 5, &wg)
+
+			go batch.Send(url, r, &wg)
 
 			// clear batch.Features for reuse
 			batch.Features = nil

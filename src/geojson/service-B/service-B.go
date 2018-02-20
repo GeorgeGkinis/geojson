@@ -5,12 +5,20 @@ import (
 	"fmt"
 	fb "geojson/featureBatch"
 	"net"
+	"os"
+	"strconv"
 	"sync"
 )
 
 func main() {
 	fmt.Println("Starting Service B.")
-	ln, err := net.Listen("tcp", ":8080")
+	url := os.Getenv("SERVICE_B_URL")
+	if url == "" {
+		//fmt.Println("SERVICE_B_URL evnironment variable not set.\n Using default: localhost:8080")
+		url = "0.0.0.0:8080"
+	}
+
+	ln, err := net.Listen("tcp", url)
 	if err != nil {
 		// handle error
 	}
@@ -21,12 +29,12 @@ func main() {
 			fmt.Println("Error while recieving connection: ", err)
 			continue
 		}
-		go handleConnection(conn) // a goroutine handles conn so that the loop can accept other connections
+		go receiveBatch(conn) // a goroutine handles conn so that the loop can accept other connections
 	}
 	fmt.Println("Exiting Service C.")
 }
 
-func handleConnection(conn net.Conn) {
+func receiveBatch(conn net.Conn) {
 	// Create decoder listening on connection
 	dec := gob.NewDecoder(conn)
 
@@ -39,6 +47,19 @@ func handleConnection(conn net.Conn) {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go batch.Send("localhost:8090", 5, &wg)
+
+	// Get retries from environment
+	r, err := strconv.Atoi(os.Getenv("RETRIES"))
+	if err != nil {
+		//fmt.Println("RETRIES evnironment variable not set.\n Using default: 5")
+		r = 5
+	}
+
+	url := os.Getenv("SERVICE_C_URL")
+	if url == "" {
+		//fmt.Println("SERVICE_C_URL evnironment variable not set.\n Using default: localhost:8090")
+		url = "localhost:8090"
+	}
+	go batch.Send(url, r, &wg)
 	wg.Wait()
 }
