@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/gob"
 	"fmt"
+	fb "geojson/featureBatch"
 	geojson "github.com/paulmach/go.geojson"
 	"log"
 	"net"
@@ -10,51 +11,58 @@ import (
 	_ "sort"
 )
 
-type featureBatch struct {
-	Timestamp     int64
-	TotalMessages int
-	Features      []geojson.Feature
-}
-
 func main() {
-	fmt.Println("Starting Service C")
+	fmt.Println("Starting Service C.")
 
-	queue := make(chan featureBatch)
+	queue := make(chan fb.FeatureBatch)
 
-	go listen(queue)
-
+	// Slice to hold batches
 	var features []geojson.Feature
 
-	// Read incomming featureBatches
-	for fb := range queue {
-		for _, f := range fb.Features {
+	// Serve at a different goroutine
+	go listen(queue)
+
+	// Create FeatureCollection to serve at endpoint.
+	fc := geojson.NewFeatureCollection()
+
+	// Read incomming featureBatches from queue
+	for batch := range queue {
+		for _, f := range batch.Features {
 			features = append(features, f)
 		}
 
-		// When all features are received create an FeatureCollection
-		if len(features) == fb.TotalMessages {
-			// Create closure to keep a copy of features
-			func([]geojson.Feature) {
-				fc := geojson.NewFeatureCollection()
+		// When all features are received
+		if len(features) == batch.TotalMessages {
 
-				for _, f := range features {
-					a := f
-					fc.AddFeature(&a)
-				}
+			// create a FeatureCollection
+			tmpfc := geojson.NewFeatureCollection()
 
-				// Sort countries based on POPDENS
-				sortFeatures(fc)
-				// Print countries on screen
-				//printfeatures(fc)
-			}(features)
+			for _, f := range features {
+				a := f
+				tmpfc.AddFeature(&a)
+			}
+			// Sort countries based on POPDENS
+			sortByDensity(tmpfc)
+
+			// Assign completed FeatureCollection to fc.
+			// This way only completed FeatureCollections are served.
+			fc.Features = tmpfc.Features
+
+			// Print countries on screen
+			printfeatures(fc)
+
+			// Clear features slice for reuse
+			features = nil
 		}
 	}
+	close(queue)
+	fmt.Println("Exiting Service C.")
 }
 
-func listen(queue chan featureBatch) {
-	ln, err := net.Listen("tcp", ":8090")
+func listen(queue chan fb.FeatureBatch) {
+	ln, err := net.Listen("tcp", "localhost:8090")
 	if err != nil {
-		// handle error
+		fmt.Println("Error setting up connection: " + err.Error())
 	}
 	for {
 		conn, err := ln.Accept() // this blocks until connection or error
@@ -63,26 +71,26 @@ func listen(queue chan featureBatch) {
 			fmt.Println("Error while recieving connection: ", err)
 			continue
 		}
-		go handleConnection(conn, queue) // a goroutine handles conn so that the loop can accept other connections
+		handleConnection(conn, queue) // a goroutine handles conn so that the loop can accept other connections
 	}
 }
 
-func handleConnection(conn net.Conn, queue chan featureBatch) {
+func handleConnection(conn net.Conn, queue chan fb.FeatureBatch) {
 	// Create decoder listening on connection
 	dec := gob.NewDecoder(conn)
 
-	fb := &featureBatch{}
-	if err := dec.Decode(fb); err != nil {
+	batch := &fb.FeatureBatch{}
+	if err := dec.Decode(batch); err != nil {
 		fmt.Println("Something went wrong while receiving batch: ", err)
 	}
 	conn.Close()
 
 	//fmt.Printf("Received : %+v\n", fb)
 
-	queue <- *fb
+	queue <- *batch
 }
 
-func sortFeatures(fc *geojson.FeatureCollection) {
+func sortByDensity(fc *geojson.FeatureCollection) {
 	sort.Slice(fc.Features, func(i, j int) bool {
 
 		idens, err := fc.Features[i].PropertyFloat64("POPDENS")
@@ -96,7 +104,6 @@ func sortFeatures(fc *geojson.FeatureCollection) {
 		}
 		return idens > jdens
 	})
-	printfeatures(fc)
 }
 
 func printfeatures(fc *geojson.FeatureCollection) {
