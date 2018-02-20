@@ -20,7 +20,7 @@ func main() {
 
 	// Get GeoJSON
 	//respBytes,err := getGeoJSON("https://ccdnn.locsensads.com/jobs/worldborders.geojson")
-	respBytes, err := getGeoJSONFile("countriesSample.geojson")
+	respBytes, err := getGeoJSONFile("countries.geojson")
 	if err != nil {
 		log.Fatal("Error reading geojson: ", err)
 	}

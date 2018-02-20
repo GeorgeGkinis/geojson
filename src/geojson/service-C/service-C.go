@@ -5,10 +5,11 @@ import (
 	"fmt"
 	fb "geojson/featureBatch"
 	geojson "github.com/paulmach/go.geojson"
+	"github.com/rs/cors"
 	"log"
 	"net"
+	"net/http"
 	"sort"
-	_ "sort"
 )
 
 func main() {
@@ -24,6 +25,8 @@ func main() {
 
 	// Create FeatureCollection to serve at endpoint.
 	fc := geojson.NewFeatureCollection()
+
+	go serve(fc)
 
 	// Read incomming featureBatches from queue
 	for batch := range queue {
@@ -73,6 +76,25 @@ func listen(queue chan fb.FeatureBatch) {
 		}
 		handleConnection(conn, queue) // a goroutine handles conn so that the loop can accept other connections
 	}
+}
+
+func serve(fc *geojson.FeatureCollection) {
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/countries", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Disposition", "attachment; filename=\"countries.geojson\"")
+
+		b, err := fc.MarshalJSON()
+		if err != nil {
+			fmt.Println("Error marshaling GeoJSON: ", err)
+		}
+		w.Write(b)
+	})
+
+	mux.Handle("/", http.FileServer(http.Dir("src/geojson/service-C")))
+
+	handler := cors.Default().Handler(mux)
+	http.ListenAndServe(":8091", handler)
 }
 
 func handleConnection(conn net.Conn, queue chan fb.FeatureBatch) {
