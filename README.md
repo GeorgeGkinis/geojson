@@ -17,6 +17,6 @@ docker run -d --rm --name service-A --net="host" georgegkinis/geojson:a
 
 The utility script src/geogson/scripts/docker.run.sh does the same.
 
-To see a plot of the GeoJSON data visit [localhost:8091](localhost:8091) in your browser.
+To see a plot of the GeoJSON data visit [localhost:8091](http://localhost:8091) in your browser.
 
 NJoy and thanks!
