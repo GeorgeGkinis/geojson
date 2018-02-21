@@ -30,7 +30,7 @@ cd src/geojson/scripts
 
 ./go.build.sh
 
-cd ../service-C && SERVER_C_URL=0.0.0.0:8091 ./service-C &
+cd ../service-C && nohup ./service-C &
 cd ../service-B && nohup ./service-B &
 cd ../service-A && nohup ./service-A &
 # Also run this comment, needs an extra \r ;)

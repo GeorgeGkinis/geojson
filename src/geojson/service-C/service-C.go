@@ -111,8 +111,8 @@ func serve(fc *geojson.FeatureCollection) {
 
 	url := os.Getenv("SERVER_C_URL")
 	if url == "" {
-		//fmt.Println("SERVER_C_URL evnironment variable not set.\n Using default: 127.0.0.1:8091")
-		url = "127.0.0.1:8091"
+		//fmt.Println("SERVER_C_URL evnironment variable not set.\n Using default: 0.0.0.0:8091")
+		url = "0.0.0.0:8091"
 	}
 	// Start server
 	http.ListenAndServe(url, handler)
