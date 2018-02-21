@@ -1,2 +1,1 @@
-#!/usr/bin/env bash
-sudo yum install git
+sudo yum install -y git

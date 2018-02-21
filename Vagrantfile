@@ -5,7 +5,7 @@ Vagrant.configure("2") do |config|
   #config.vbguest.auto_update = false
 
   # Service-C
-  config.vm.network "forwarded_port", guest: 8091, host: 8091
+  config.vm.network "forwarded_port", guest: 8091, host: 8091, host_ip: "127.0.0.1"
 
   # minikube dashboard
   # config.vm.network "forwarded_port", guest: 30000, 30000
@@ -21,8 +21,14 @@ Vagrant.configure("2") do |config|
   # Install Docker
   config.vm.provision "shell", path: "src/geojson/scripts/docker.install.sh"
 
+  # Set file permissions
+  config.vm.provision "shell", inline: "chmod 770 /vagrant/src/geojson/scripts/*"
+
   # Install Go
   config.vm.provision "shell", path: "src/geojson/scripts/go.install.sh"
+
+  # Install Git
+  config.vm.provision "shell", path: "src/geojson/scripts/git.install.sh"
 
   # Instal Kubectl
   # config.vm.provision "shell", path: "src/geojson/scripts/kubectl.install.sh"
