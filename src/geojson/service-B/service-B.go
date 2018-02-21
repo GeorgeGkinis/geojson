@@ -14,8 +14,8 @@ func main() {
 	fmt.Println("Starting Service B.")
 	url := os.Getenv("SERVICE_B_URL")
 	if url == "" {
-		//fmt.Println("SERVICE_B_URL evnironment variable not set.\n Using default: localhost:8080")
-		url = "0.0.0.0:8080"
+		//fmt.Println("SERVICE_B_URL evnironment variable not set.\n Using default: 127.0.0.1:8080")
+		url = "127.0.0.1:8080"
 	}
 
 	ln, err := net.Listen("tcp", url)
@@ -31,7 +31,7 @@ func main() {
 		}
 		go receiveBatch(conn) // a goroutine handles conn so that the loop can accept other connections
 	}
-	fmt.Println("Exiting Service C.")
+	fmt.Println("Exiting Service B.")
 }
 
 func receiveBatch(conn net.Conn) {
@@ -57,8 +57,8 @@ func receiveBatch(conn net.Conn) {
 
 	url := os.Getenv("SERVICE_C_URL")
 	if url == "" {
-		//fmt.Println("SERVICE_C_URL evnironment variable not set.\n Using default: localhost:8090")
-		url = "localhost:8090"
+		//fmt.Println("SERVICE_C_URL evnironment variable not set.\n Using default: 127.0.0.1:8090")
+		url = "127.0.0.1:8090"
 	}
 	go batch.Send(url, r, &wg)
 	wg.Wait()

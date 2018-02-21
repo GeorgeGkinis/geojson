@@ -66,8 +66,8 @@ func main() {
 func listen(queue chan fb.FeatureBatch) {
 	url := os.Getenv("SERVICE_C_URL")
 	if url == "" {
-		//fmt.Println("SERVICE_C_URL evnironment variable not set.\n Using default: localhost:8090")
-		url = "0.0.0.0:8090"
+		//fmt.Println("SERVICE_C_URL evnironment variable not set.\n Using default: 127.0.0.1:8090")
+		url = "127.0.0.1:8090"
 	}
 
 	ln, err := net.Listen("tcp", url)
@@ -103,14 +103,14 @@ func serve(fc *geojson.FeatureCollection) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(dir)
-	mux.Handle("/", http.FileServer(http.Dir("./")))
+
+	mux.Handle("/", http.FileServer(http.Dir(dir)))
 
 	handler := cors.Default().Handler(mux)
 	url := os.Getenv("SERVER_C_URL")
 	if url == "" {
-		//fmt.Println("SERVER_C_URL evnironment variable not set.\n Using default: 0.0.0.0:8091")
-		url = "0.0.0.0:8091"
+		//fmt.Println("SERVER_C_URL evnironment variable not set.\n Using default: 127.0.0.1:8091")
+		url = "127.0.0.1:8091"
 	}
 	http.ListenAndServe(url, handler)
 }

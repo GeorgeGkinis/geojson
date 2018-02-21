@@ -1,0 +1,6 @@
+# Download
+curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+# Make the kubectl binary executable.
+chmod +x ./kubectl
+#Move the binary in to your PATH.
+sudo mv ./kubectl /usr/bin/kubectl

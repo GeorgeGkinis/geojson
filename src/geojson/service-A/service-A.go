@@ -31,8 +31,8 @@ func main() {
 	}
 	url := os.Getenv("SERVICE_B_URL")
 	if url == "" {
-		//fmt.Println("SERVICE_B_URL evnironment variable not set.\n Using default: localhost:8080")
-		url = "0.0.0.0:8080"
+		//fmt.Println("SERVICE_B_URL evnironment variable not set.\n Using default: 127.0.0.1:8080")
+		url = "127.0.0.1:8080"
 	}
 
 	// Get GeoJSON
@@ -54,27 +54,32 @@ func main() {
 		TotalMessages: len(fc.Features),
 		Features:      nil,
 	}
-	// Fill batches and send to Service B
-	var wg sync.WaitGroup
-	for i, f := range fc.Features {
+	// Forever
+	for {
+		// Fill batches and send to Service B
+		var wg sync.WaitGroup
+		for i, f := range fc.Features {
 
-		batch.Features = append(batch.Features, *f)
+			batch.Features = append(batch.Features, *f)
 
-		// If batch is full OR no remaining Features to send
-		if len(batch.Features) == batchSize || len(fc.Features) == i+1 {
-			// Set batch number
-			batch.BatchNumber = 1 + (i / batchSize)
+			// If batch is full OR no remaining Features to send
+			if len(batch.Features) == batchSize || len(fc.Features) == i+1 {
+				// Set batch number
+				batch.BatchNumber = 1 + (i / batchSize)
 
-			wg.Add(1)
+				wg.Add(1)
 
-			go batch.Send(url, r, &wg)
+				go batch.Send(url, r, &wg)
 
-			// clear batch.Features for reuse
-			batch.Features = nil
+				// clear batch.Features for reuse
+				batch.Features = nil
+			}
 		}
+		// Wait for all batches to finish sending.
+		wg.Wait()
+		// Wait 5 seconds and resend
+		time.Sleep(5 * time.Second)
 	}
-	// Wait for all batches to finish sending.
-	wg.Wait()
 	fmt.Println("Exiting Service A.")
 }
 
