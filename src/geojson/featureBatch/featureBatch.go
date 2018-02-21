@@ -21,9 +21,7 @@ func (b FeatureBatch) Send(url string, attempts int, wg *sync.WaitGroup) {
 	fmt.Printf("Sending batch: %+v, number of elements: %+v\n", b.BatchNumber, len(b.Features))
 	defer wg.Done()
 	for i := 1; ; i++ {
-		//var err *error
 		err := b.sendBatch(url)
-
 		if err == nil {
 			return
 		}
@@ -41,11 +39,10 @@ func (b FeatureBatch) Send(url string, attempts int, wg *sync.WaitGroup) {
 
 func (b FeatureBatch) sendBatch(url string) error {
 
-	// Connect to Service B
+	// Connect to Service url
 	conn, err := net.Dial("tcp", url)
-
 	if err != nil {
-		//fmt.Println("Connection error: ", err)
+		fmt.Println("Connection error: ", err)
 		return err
 	}
 	defer conn.Close()

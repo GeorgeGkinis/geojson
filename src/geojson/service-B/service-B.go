@@ -20,12 +20,11 @@ func main() {
 
 	ln, err := net.Listen("tcp", url)
 	if err != nil {
-		// handle error
+		fmt.Println("Cannot listen to: ", url, "Error: ", err)
 	}
 	for {
 		conn, err := ln.Accept() // this blocks until connection or error
 		if err != nil {
-			// handle error
 			fmt.Println("Error while recieving connection: ", err)
 			continue
 		}
@@ -39,7 +38,10 @@ func receiveBatch(conn net.Conn) {
 	dec := gob.NewDecoder(conn)
 
 	batch := &fb.FeatureBatch{}
-	dec.Decode(batch)
+	err := dec.Decode(batch)
+	if err != nil {
+		fmt.Println("Error while decoding batch: ", err)
+	}
 	conn.Close()
 
 	fmt.Printf("Received batch %v of length: %v\n", batch.BatchNumber, len(batch.Features))

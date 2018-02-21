@@ -21,6 +21,9 @@ Vagrant.configure("2") do |config|
   # Install Docker
   config.vm.provision "shell", path: "src/geojson/scripts/docker.install.sh"
 
+  # Install Go
+  config.vm.provision "shell", path: "src/geojson/scripts/go.install.sh"
+
   # Instal Kubectl
   # config.vm.provision "shell", path: "src/geojson/scripts/kubectl.install.sh"
 
@@ -34,5 +37,5 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", path: "src/geojson/scripts/docker.run.sh"
 
   # Reboot
-  # config.vm.provision "shell", inline: "reboot"
+  #config.vm.provision "shell", inline: "reboot"
 end

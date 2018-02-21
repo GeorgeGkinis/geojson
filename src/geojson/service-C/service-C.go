@@ -77,7 +77,6 @@ func listen(queue chan fb.FeatureBatch) {
 	for {
 		conn, err := ln.Accept() // this blocks until connection or error
 		if err != nil {
-			// handle error
 			fmt.Println("Error while recieving connection: ", err)
 			continue
 		}
@@ -98,20 +97,24 @@ func serve(fc *geojson.FeatureCollection) {
 		w.Write(b)
 	})
 
-	//dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	// Get working directory used to serve index.html
 	dir, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Serve index.html
 	mux.Handle("/", http.FileServer(http.Dir(dir)))
 
+	// enable CORS to be able to get countries.geojson
 	handler := cors.Default().Handler(mux)
+
 	url := os.Getenv("SERVER_C_URL")
 	if url == "" {
 		//fmt.Println("SERVER_C_URL evnironment variable not set.\n Using default: 127.0.0.1:8091")
 		url = "127.0.0.1:8091"
 	}
+	// Start server
 	http.ListenAndServe(url, handler)
 }
 
@@ -121,12 +124,11 @@ func handleConnection(conn net.Conn, queue chan fb.FeatureBatch) {
 
 	batch := &fb.FeatureBatch{}
 	if err := dec.Decode(batch); err != nil {
-		fmt.Println("Something went wrong while receiving batch: ", err)
+		fmt.Println("Something went wrong while decoding batch: ", err)
 	}
 	conn.Close()
 
-	//fmt.Printf("Received : %+v\n", fb)
-
+	// Send batch to queue to be processed
 	queue <- *batch
 }
 
