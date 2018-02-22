@@ -115,7 +115,11 @@ func serve(fc *geojson.FeatureCollection) {
 		url = "0.0.0.0:8091"
 	}
 	// Start server
-	http.ListenAndServe(url, handler)
+	err = http.ListenAndServe(url, handler)
+	if err != nil {
+		fmt.Println("Cannot listen to: ", url, "Error: ", err)
+	}
+
 }
 
 func handleConnection(conn net.Conn, queue chan fb.FeatureBatch) {

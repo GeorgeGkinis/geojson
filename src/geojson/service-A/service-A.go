@@ -100,7 +100,6 @@ func getGeoJSON(url string) ([]byte, error) {
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println(err)
-		//os.Exit(-2)
 	}
 
 	return respBytes, err
